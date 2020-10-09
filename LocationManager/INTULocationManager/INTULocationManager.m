@@ -93,12 +93,12 @@ static id _sharedInstance;
     else if ([CLLocationManager authorizationStatus] == kCLAuthorizationStatusRestricted) {
         return INTULocationServicesStateRestricted;
     }
-    
+
     return INTULocationServicesStateAvailable;
 }
 
-/** 
- Returns the current state of heading services for this device. 
+/**
+ Returns the current state of heading services for this device.
  */
 + (INTUHeadingServicesState)headingServicesState
 {
@@ -128,7 +128,7 @@ static id _sharedInstance;
     if (self) {
         _locationManager = [[CLLocationManager alloc] init];
         _locationManager.delegate = self;
-        
+
 #ifdef __IPHONE_8_4
 #if __IPHONE_OS_VERSION_MAX_ALLOWED > __IPHONE_8_4
         /* iOS 9 requires setting allowsBackgroundLocationUpdates to YES in order to receive background location updates.
@@ -152,7 +152,7 @@ static id _sharedInstance;
 
 /**
  Asynchronously requests the current location of the device using location services.
- 
+
  @param desiredAccuracy The accuracy level desired (refers to the accuracy and recency of the location).
  @param timeout         The maximum amount of time (in seconds) to wait for a location with the desired accuracy before completing.
                             If this value is 0.0, no timeout will be set (will wait indefinitely for success, unless request is force completed or canceled).
@@ -160,7 +160,7 @@ static id _sharedInstance;
                             - The current location (the most recent one acquired, regardless of accuracy level), or nil if no valid location was acquired
                             - The achieved accuracy for the current location (may be less than the desired accuracy if the request failed)
                             - The request status (if it succeeded, or if not, why it failed)
- 
+
  @return The location request ID, which can be used to force early completion or cancel the request while it is in progress.
  */
 - (INTULocationRequestID)requestLocationWithDesiredAccuracy:(INTULocationAccuracy)desiredAccuracy
@@ -176,7 +176,7 @@ static id _sharedInstance;
 /**
  Asynchronously requests the current location of the device using location services, optionally waiting until the user grants the app permission
  to access location services before starting the timeout countdown.
- 
+
  @param desiredAccuracy      The accuracy level desired (refers to the accuracy and recency of the location).
  @param timeout              The maximum amount of time (in seconds) to wait for a location with the desired accuracy before completing. If
                              this value is 0.0, no timeout will be set (will wait indefinitely for success, unless request is force completed or canceled).
@@ -187,7 +187,7 @@ static id _sharedInstance;
                                  - The current location (the most recent one acquired, regardless of accuracy level), or nil if no valid location was acquired
                                  - The achieved accuracy for the current location (may be less than the desired accuracy if the request failed)
                                  - The request status (if it succeeded, or if not, why it failed)
- 
+
  @return The location request ID, which can be used to force early completion or cancel the request while it is in progress.
  */
 - (INTULocationRequestID)requestLocationWithDesiredAccuracy:(INTULocationAccuracy)desiredAccuracy
@@ -196,25 +196,25 @@ static id _sharedInstance;
                                                       block:(INTULocationRequestBlock)block
 {
     NSAssert([NSThread isMainThread], @"INTULocationManager should only be called from the main thread.");
-    
+
     if (desiredAccuracy == INTULocationAccuracyNone) {
         NSAssert(desiredAccuracy != INTULocationAccuracyNone, @"INTULocationAccuracyNone is not a valid desired accuracy.");
         desiredAccuracy = INTULocationAccuracyCity; // default to the lowest valid desired accuracy
     }
-    
+
     INTULocationRequest *locationRequest = [[INTULocationRequest alloc] initWithType:INTULocationRequestTypeSingle];
     locationRequest.delegate = self;
     locationRequest.desiredAccuracy = desiredAccuracy;
     locationRequest.timeout = timeout;
     locationRequest.block = block;
-    
+
     BOOL deferTimeout = delayUntilAuthorized && ([CLLocationManager authorizationStatus] == kCLAuthorizationStatusNotDetermined);
     if (!deferTimeout) {
         [locationRequest startTimeoutTimerIfNeeded];
     }
-    
+
     [self addLocationRequest:locationRequest];
-    
+
     return locationRequest.requestID;
 }
 
@@ -222,10 +222,10 @@ static id _sharedInstance;
  Creates a subscription for location updates that will execute the block once per update indefinitely (until canceled), regardless of the accuracy of each location.
  This method instructs location services to use the highest accuracy available (which also requires the most power).
  If an error occurs, the block will execute with a status other than INTULocationStatusSuccess, and the subscription will be canceled automatically.
- 
+
  @param block The block to execute every time an updated location is available.
               The status will be INTULocationStatusSuccess unless an error occurred; it will never be INTULocationStatusTimedOut.
- 
+
  @return The location request ID, which can be used to cancel the subscription of location updates to this block.
  */
 - (INTULocationRequestID)subscribeToLocationUpdatesWithBlock:(INTULocationRequestBlock)block
@@ -238,46 +238,46 @@ static id _sharedInstance;
  Creates a subscription for location updates that will execute the block once per update indefinitely (until canceled), regardless of the accuracy of each location.
  The specified desired accuracy is passed along to location services, and controls how much power is used, with higher accuracies using more power.
  If an error occurs, the block will execute with a status other than INTULocationStatusSuccess, and the subscription will be canceled automatically.
- 
+
  @param desiredAccuracy The accuracy level desired, which controls how much power is used by the device's location services.
  @param block           The block to execute every time an updated location is available. Note that this block runs for every update, regardless of
                         whether the achievedAccuracy is at least the desiredAccuracy.
                         The status will be INTULocationStatusSuccess unless an error occurred; it will never be INTULocationStatusTimedOut.
- 
+
  @return The location request ID, which can be used to cancel the subscription of location updates to this block.
  */
 - (INTULocationRequestID)subscribeToLocationUpdatesWithDesiredAccuracy:(INTULocationAccuracy)desiredAccuracy
                                                                  block:(INTULocationRequestBlock)block
 {
     NSAssert([NSThread isMainThread], @"INTULocationManager should only be called from the main thread.");
-    
+
     INTULocationRequest *locationRequest = [[INTULocationRequest alloc] initWithType:INTULocationRequestTypeSubscription];
     locationRequest.desiredAccuracy = desiredAccuracy;
     locationRequest.block = block;
-    
+
     [self addLocationRequest:locationRequest];
-    
+
     return locationRequest.requestID;
 }
 
 /**
  Creates a subscription for significant location changes that will execute the block once per change indefinitely (until canceled).
  If an error occurs, the block will execute with a status other than INTULocationStatusSuccess, and the subscription will be canceled automatically.
- 
+
  @param block The block to execute every time an updated location is available.
               The status will be INTULocationStatusSuccess unless an error occurred; it will never be INTULocationStatusTimedOut.
- 
+
  @return The location request ID, which can be used to cancel the subscription of significant location changes to this block.
  */
 - (INTULocationRequestID)subscribeToSignificantLocationChangesWithBlock:(INTULocationRequestBlock)block
 {
     NSAssert([NSThread isMainThread], @"INTULocationManager should only be called from the main thread.");
-    
+
     INTULocationRequest *locationRequest = [[INTULocationRequest alloc] initWithType:INTULocationRequestTypeSignificantChanges];
     locationRequest.block = block;
-    
+
     [self addLocationRequest:locationRequest];
-    
+
     return locationRequest.requestID;
 }
 
@@ -288,7 +288,7 @@ static id _sharedInstance;
 - (void)forceCompleteLocationRequest:(INTULocationRequestID)requestID
 {
     NSAssert([NSThread isMainThread], @"INTULocationManager should only be called from the main thread.");
-    
+
     for (INTULocationRequest *locationRequest in self.locationRequests) {
         if (locationRequest.requestID == requestID) {
             if (locationRequest.isRecurring) {
@@ -309,7 +309,7 @@ static id _sharedInstance;
 - (void)cancelLocationRequest:(INTULocationRequestID)requestID
 {
     NSAssert([NSThread isMainThread], @"INTULocationManager should only be called from the main thread.");
-    
+
     for (INTULocationRequest *locationRequest in self.locationRequests) {
         if (locationRequest.requestID == requestID) {
             [locationRequest cancel];
@@ -327,7 +327,7 @@ static id _sharedInstance;
 
  @param block The block to be executed when the request succeeds. One parameter is passed into the block:
  - The current heading (the most recent one acquired, regardless of accuracy level), or nil if no valid heading was acquired
- 
+
  @return The heading request ID, which can be used remove the request from being called in the future.
  */
 - (INTUHeadingRequestID)subscribeToHeadingUpdatesWithBlock:(INTUHeadingRequestBlock)block
@@ -369,7 +369,7 @@ static id _sharedInstance;
         [self completeLocationRequest:locationRequest];
         return;
     }
-    
+
     switch (locationRequest.type) {
         case INTULocationRequestTypeSingle:
         case INTULocationRequestTypeSubscription:
@@ -384,7 +384,7 @@ static id _sharedInstance;
             // Take the max of the maximum desired accuracy for all existing location requests and the desired accuracy of the new request we're currently adding
             maximumDesiredAccuracy = MAX(locationRequest.desiredAccuracy, maximumDesiredAccuracy);
             [self updateWithMaximumDesiredAccuracy:maximumDesiredAccuracy];
-            
+
             [self startUpdatingLocationIfNeeded];
         }
             break;
@@ -396,7 +396,7 @@ static id _sharedInstance;
     [newLocationRequests addObject:locationRequest];
     self.locationRequests = newLocationRequests;
     INTULMLog(@"Location Request added with ID: %ld", (long)locationRequest.requestID);
-    
+
     // Process all location requests now, as we may be able to immediately complete the request just added above
     // if a location update was recently received (stored in self.currentLocation) that satisfies its criteria.
     [self processLocationRequests];
@@ -410,7 +410,7 @@ static id _sharedInstance;
     __INTU_GENERICS(NSMutableArray, INTULocationRequest *) *newLocationRequests = [NSMutableArray arrayWithArray:self.locationRequests];
     [newLocationRequests removeObject:locationRequest];
     self.locationRequests = newLocationRequests;
-    
+
     switch (locationRequest.type) {
         case INTULocationRequestTypeSingle:
         case INTULocationRequestTypeSubscription:
@@ -423,7 +423,7 @@ static id _sharedInstance;
                 }
             }
             [self updateWithMaximumDesiredAccuracy:maximumDesiredAccuracy];
-            
+
             [self stopUpdatingLocationIfPossible];
         }
             break;
@@ -437,7 +437,7 @@ static id _sharedInstance;
  Returns the most recent current location, or nil if the current location is unknown, invalid, or stale.
  */
 - (CLLocation *)currentLocation
-{    
+{
     if (_currentLocation) {
         // Location isn't nil, so test to see if it is valid
         if (!CLLocationCoordinate2DIsValid(_currentLocation.coordinate) || (_currentLocation.coordinate.latitude == 0.0 && _currentLocation.coordinate.longitude == 0.0)) {
@@ -445,7 +445,7 @@ static id _sharedInstance;
             _currentLocation = nil;
         }
     }
-    
+
     // Location is either nil or valid at this point, return it
     return _currentLocation;
 }
@@ -459,7 +459,7 @@ static id _sharedInstance;
     // As of iOS 8, apps must explicitly request location services permissions. INTULocationManager supports both levels, "Always" and "When In Use".
     // INTULocationManager determines which level of permissions to request based on which description key is present in your app's Info.plist
     // If you provide values for both description keys, the more permissive "Always" level is requested.
-    
+
     double iOSVersion = floor(NSFoundationVersionNumber);
     BOOL isiOSVersion7to10 = iOSVersion > NSFoundationVersionNumber_iOS_7_1 && iOSVersion <= NSFoundationVersionNumber10_11_Max;
     if ([CLLocationManager authorizationStatus] == kCLAuthorizationStatusNotDetermined) {
@@ -521,7 +521,7 @@ static id _sharedInstance;
 - (void)startMonitoringSignificantLocationChangesIfNeeded
 {
     [self requestAuthorizationIfNeeded];
-    
+
     NSArray *locationRequests = [self activeLocationRequestsWithType:INTULocationRequestTypeSignificantChanges];
     if (locationRequests.count == 0) {
         [self.locationManager startMonitoringSignificantLocationChanges];
@@ -538,7 +538,7 @@ static id _sharedInstance;
 - (void)startUpdatingLocationIfNeeded
 {
     [self requestAuthorizationIfNeeded];
-    
+
     NSArray *locationRequests = [self activeLocationRequestsExcludingType:INTULocationRequestTypeSignificantChanges];
     if (locationRequests.count == 0) {
         [self.locationManager startUpdatingLocation];
@@ -584,14 +584,14 @@ static id _sharedInstance;
 - (void)processLocationRequests
 {
     CLLocation *mostRecentLocation = self.currentLocation;
-    
+
     for (INTULocationRequest *locationRequest in self.locationRequests) {
         if (locationRequest.hasTimedOut) {
             // Non-recurring request has timed out, complete it
             [self completeLocationRequest:locationRequest];
             continue;
         }
-        
+
         if (mostRecentLocation != nil) {
             if (locationRequest.isRecurring) {
                 // This is a subscription request, which lives indefinitely (unless manually canceled) and receives every location update we get
@@ -636,14 +636,14 @@ static id _sharedInstance;
     if (locationRequest == nil) {
         return;
     }
-    
+
     [locationRequest complete];
     [self removeLocationRequest:locationRequest];
-    
+
     INTULocationStatus status = [self statusForLocationRequest:locationRequest];
     CLLocation *currentLocation = self.currentLocation;
     INTULocationAccuracy achievedAccuracy = [self achievedAccuracyForLocation:currentLocation];
-    
+
     // INTULocationManager is not thread safe and should only be called from the main thread, so we should already be executing on the main thread now.
     // dispatch_async is used to ensure that the completion block for a request is not executed before the request ID is returned, for example in the
     // case where the user has denied permission to access location services and the request is immediately completed with the appropriate error.
@@ -652,7 +652,7 @@ static id _sharedInstance;
             locationRequest.block(currentLocation, achievedAccuracy, status);
         }
     });
-    
+
     INTULMLog(@"Location Request completed with ID: %ld, currentLocation: %@, achievedAccuracy: %lu, status: %lu", (long)locationRequest.requestID, currentLocation, (unsigned long) achievedAccuracy, (unsigned long)status);
 }
 
@@ -662,11 +662,11 @@ static id _sharedInstance;
 - (void)processRecurringRequest:(INTULocationRequest *)locationRequest
 {
     NSAssert(locationRequest.isRecurring, @"This method should only be called for recurring location requests.");
-    
+
     INTULocationStatus status = [self statusForLocationRequest:locationRequest];
     CLLocation *currentLocation = self.currentLocation;
     INTULocationAccuracy achievedAccuracy = [self achievedAccuracyForLocation:currentLocation];
-    
+
     // INTULocationManager is not thread safe and should only be called from the main thread, so we should already be executing on the main thread now.
     // dispatch_async is used to ensure that the completion block for a request is not executed before the request ID is returned.
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -702,7 +702,7 @@ static id _sharedInstance;
 - (INTULocationStatus)statusForLocationRequest:(INTULocationRequest *)locationRequest
 {
     INTULocationServicesState locationServicesState = [INTULocationManager locationServicesState];
-    
+
     if (locationServicesState == INTULocationServicesStateDisabled) {
         return INTULocationStatusServicesDisabled;
     }
@@ -721,7 +721,7 @@ static id _sharedInstance;
     else if (locationRequest.hasTimedOut) {
         return INTULocationStatusTimedOut;
     }
-    
+
     return INTULocationStatusSuccess;
 }
 
@@ -734,10 +734,10 @@ static id _sharedInstance;
     if (!location) {
         return INTULocationAccuracyNone;
     }
-    
+
     NSTimeInterval timeSinceUpdate = fabs([location.timestamp timeIntervalSinceNow]);
     CLLocationAccuracy horizontalAccuracy = location.horizontalAccuracy;
-    
+
     if (horizontalAccuracy <= kINTUHorizontalAccuracyThresholdRoom &&
         timeSinceUpdate <= kINTUUpdateTimeStaleThresholdRoom) {
         return INTULocationAccuracyRoom;
@@ -933,10 +933,10 @@ BOOL INTUCLHeadingIsIsValid(CLHeading *heading)
 {
     // Received update successfully, so clear any previous errors
     self.updateFailed = NO;
-    
+
     CLLocation *mostRecentLocation = [locations lastObject];
     self.currentLocation = mostRecentLocation;
-    
+
     // Process the location requests using the updated location
     [self processLocationRequests];
 }
@@ -951,6 +951,10 @@ BOOL INTUCLHeadingIsIsValid(CLHeading *heading)
 
 - (void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error
 {
+    if ([CLLocationManager authorizationStatus] == kCLAuthorizationStatusNotDetermined) {
+        return;
+    }
+
     INTULMLog(@"Location services error: %@", [error localizedDescription]);
     self.updateFailed = YES;
 
@@ -998,7 +1002,7 @@ BOOL INTUCLHeadingIsIsValid(CLHeading *heading)
         _locationManager.showsBackgroundLocationIndicator = shows;
     }
 }
-    
+
 - (void)setPausesLocationUpdatesAutomatically:(BOOL) pauses
 {
     _locationManager.pausesLocationUpdatesAutomatically = pauses;
